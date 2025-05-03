@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Minecraft Movie Clicker</title>
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #d0e6f6, #e6f0ff);
+      color: #333;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    #startup-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeOut 3s ease forwards;
+    }
+
+    #startup-screen h1 {
+      font-size: 3rem;
+      color: #fff;
+      animation: slideIn 2s ease-out forwards;
+    }
+
+    @keyframes slideIn {
+      0% {
+        transform: translateY(-100%);
+      }
+      100% {
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% {
+        opacity: 0;
+        display: none;
+      }
+    }
+
+    h1 {
+      font-size: 3rem;
+      color: #4a90e2;
+      margin-bottom: 20px;
+    }
+
+    #clicker {
+      font-size: 4rem;
+      width: 180px;
+      height: 180px;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #4a90e2;
+      box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+    }
+
+    #counter, #rebirths, #click-power, #current-skin {
+      font-size: 1.5rem;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    #movie-facts {
+      margin-top: 25px;
+      max-width: 600px;
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      border: 1px solid #4a90e2;
+    }
+
+    #upgrades, #skins {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 15px;
+      max-width: 1000px;
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    .upgrade, .skin {
+      background: #f0f4f8;
+      color: #4a90e2;
+      padding: 14px 20px;
+      border: 2px solid #4a90e2;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .upgrade:hover:not(:disabled), .skin:hover:not(:disabled) {
+      background: #4a90e2;
+      color: #fff;
+      transform: translateY(-3px);
+    }
+
+    .upgrade:disabled, .skin:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .falling-steve {
+      position: absolute;
+      top: -50px;
+      font-size: 2rem;
+      opacity: 0.3;
+      animation: fall 5s linear;
+    }
+
+    .caption {
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-50px); }
+      100% { transform: translateY(110vh); }
+    }
+
+    #saveBtn, #resetBtn, #rebirthBtn, #miniGameBtn {
+      margin: 20px 5px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #saveBtn:hover, #resetBtn:hover, #rebirthBtn:hover, #miniGameBtn:hover {
+      background: #357ABD;
+    }
+  </style>
+</head>
+<body>
+  <div id="startup-screen">
+    <h1>Game made by Nash</h1>
+  </div>
+
+  <h1>Minecraft Movie Clicker</h1>
+  <button id="clicker">🧍‍♂️</button>
+  <div id="counter">Clicks: 0</div>
+  <div id="click-power">Click Power: 1</div>
+  <div id="rebirths">Rebirths: 0</div>
+  <div id="current-skin">Current Skin: Default</div>
+  <div id="movie-facts">Fun Minecraft Movie Fact #1: Minecraft Movie is based on the popular game Minecraft.</div>
+  <div>
+    <button id="saveBtn">Save</button>
+    <button id="resetBtn">Reset</button>
+    <button id="rebirthBtn">Rebirth</button>
+    <button id="miniGameBtn">🎮 Play Mini Game</button>
+  </div>
+  <div id="upgrades"></div>
+  <div id="skins"></div>
+
+  <script>
+    let clicks = parseInt(localStorage.getItem('clicks')) || 0;
+    let clickPower = parseInt(localStorage.getItem('clickPower')) || 1;
+    let rebirths = parseInt(localStorage.getItem('rebirths')) || 0;
+    let rebirthMultiplier = parseInt(localStorage.getItem('rebirthMultiplier')) || 1;
+    let selectedSkin = localStorage.getItem('skin') || 'Default';
+
+    const clicker = document.getElementById('clicker');
+    const counter = document.getElementById('counter');
+    const powerDisplay = document.getElementById('click-power');
+    const rebirthDisplay = document.getElementById('rebirths');
+    const skinDisplay = document.getElementById('current-skin');
+    const factsDisplay = document.getElementById('movie-facts');
+    const upgradesContainer = document.getElementById('upgrades');
+    const skinsContainer = document.getElementById('skins');
+
+    const movieFacts = [
+      "Minecraft Movie is based on the popular game Minecraft.",
+      "The Minecraft Movie is directed by Peter Sollett.",
+      "The movie was originally planned for release in 2022 but was delayed.",
+      "Minecraft, the game, was originally created by Markus Persson in 2009.",
+      "The Minecraft Movie will follow a group of characters in a post-apocalyptic world.",
+      "Steve is the iconic protagonist in Minecraft.",
+      "Alex is another playable character in Minecraft.",
+      "Minecraft was acquired by Microsoft in 2014 for $2.5 billion.",
+      "Minecraft's open world allows players to build, explore, and survive.",
+      "The game features a variety of mobs, such as Creepers, Zombies, and Endermen."
+    ];
+
+    const upgrades = [
+      { id: "u1", name: "Wood Pickaxe", power: 1, cost: 120 },
+      { id: "u2", name: "Stone Pickaxe", power: 5, cost: 200 },
+      { id: "u3", name: "Lava Chicken", power: 25, cost: 1000 },
+      { id: "u4", name: "Iron Pickaxe", power: 50, cost: 1750 },
+      { id: "u5", name: "Gold Pickaxe", power: 100, cost: 2345 },
+      { id: "u6", name: "Diamond Pickaxe", power: 200, cost: 4500 },
+      { id: "u7", name: "Netherite Pickaxe", power: 400, cost: 8450 },
+      { id: "u8", name: "Enchanted Pickaxe", power: 1000, cost: 16000 },
+      { id: "u9", name: "Beacon of Power", power: 2500, cost: 50000 }
+    ];
+
+    const skins = [
+      { id: "s1", name: "Steve", emoji: "🧍‍♂️" },
+      { id: "s2", name: "Alex", emoji: "🧍" },
+      { id: "s3", name: "Creeper", emoji: "💥" }
+    ];
+
+    function updateUI() {
+      counter.textContent = `Clicks: ${clicks}`;
+      powerDisplay.textContent = `Click Power: ${clickPower}`;
+      rebirthDisplay.textContent = `Rebirths: ${rebirths}`;
+      skinDisplay.textContent = `Current Skin: ${selectedSkin}`;
+      factsDisplay.textContent = movieFacts[clicks % movieFacts.length];
+    }
+
+    function spawnSteve() {
+      const steve = document.createElement('div');
+      steve.className = 'falling-steve';
+      steve.innerHTML = `${clicker.textContent}<div class="caption">Water bucket release!</div>`;
+      steve.style.left = `${Math.random() < 0.5 ? 0 : 95}%`;
+      document.body.appendChild(steve);
+      setTimeout(() => steve.remove(), 5000);
+    }
+    setInterval(spawnSteve, 10000);
+
+    upgrades.forEach(upg => {
+      const btn = document.createElement('button');
+      btn.className = 'upgrade';
+      btn.id = upg.id;
+      btn.textContent = `${upg.name} (+${upg.power}) - ${upg.cost} clicks`;
+      btn.addEventListener('click', () => {
+        if (clicks >= upg.cost) {
+          clicks -= upg.cost;
+          clickPower += upg.power * rebirthMultiplier;
+          btn.disabled = true;
+          updateUI();
+        }
+      });
+      upgradesContainer.appendChild(btn);
+    });
+
+    skins.forEach(skin => {
+      const btn = document.createElement('button');
+      btn.className = 'skin';
+      btn.textContent = `Unlock ${skin.name}`;
+      btn.addEventListener('click', () => {
+        clicker.textContent = skin.emoji;
+        selectedSkin = skin.name;
+        localStorage.setItem('skin', selectedSkin);
+        updateUI();
+      });
+      skinsContainer.appendChild(btn);
+    });
+
+    clicker.addEventListener('click', () => {
+      clicks += clickPower;
+      updateUI();
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      localStorage.setItem('clicks', clicks);
+      localStorage.setItem('clickPower', clickPower);
+      localStorage.setItem('rebirths', rebirths);
+      localStorage.setItem('rebirthMultiplier', rebirthMultiplier);
+      localStorage.setItem('skin', selectedSkin);
+      alert("Game Saved!");
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      localStorage.clear();
+      location.reload();
+    });
+
+    document.getElementById('rebirthBtn').addEventListener('click', () => {
+      if (clicks >= 10000) {
+        clicks = 0;
+        rebirths += 1;
+        rebirthMultiplier *= 2;
+        clickPower = 1 * rebirthMultiplier;
+        localStorage.setItem('rebirths', rebirths);
+        localStorage.setItem('rebirthMultiplier', rebirthMultiplier);
+        alert("You have been reborn! Your click power has doubled!");
+        updateUI();
+      } else {
+        alert("You need at least 10,000 clicks to rebirth!");
+      }
+    });
+
+    document.getElementById('miniGameBtn').addEventListener('click', () => {
+      const game = Math.random() < 0.5 ? 'Plinko' : 'Slot';
+      if (game === 'Plinko') playPlinko();
+      else playSlotMachine();
+    });
+
+    function playPlinko() {
+      alert("🎯 Playing Plinko Ball...");
+      const win = Math.random() < 0.1;
+      if (win) {
+        const prize = 1000 + Math.floor(Math.random() * 1000);
+        clicks += prize;
+        alert(`🏆 You won ${prize} clicks from Plinko!`);
+      } else {
+        alert("😢 No luck this time.");
+      }
+      updateUI();
+    }
+
+    function playSlotMachine() {
+      alert("🎰 Spinning the Slot Machine...");
+      const win = Math.random() < 0.1;
+      if (win) {
+        const prize = 1500 + Math.floor(Math.random() * 1500);
+        clicks += prize;
+        alert(`🎉 You hit the jackpot! +${prize} clicks`);
+      } else {
+        alert("💨 Try again next time!");
+      }
+      updateUI();
+    }
+
+    const lastPlayed = parseInt(localStorage.getItem('lastPlayed')) || Date.now();
+    const now = Date.now();
+    const diffMins = Math.floor((now - lastPlayed) / 60000);
+    if (diffMins > 0) {
+      const offlineEarnings = diffMins * clickPower;
+      clicks += offlineEarnings;
+      alert(`While you were away, you earned ${offlineEarnings} clicks!`);
+    }
+    localStorage.setItem('lastPlayed', now);
+
+    clicker.textContent = skins.find(s => s.name === selectedSkin)?.emoji || "🧍‍♂️";
+    updateUI();
+  </script>
+</body>
+</html>
